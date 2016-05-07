@@ -8,18 +8,16 @@
 #include "stm32f0xx.h"
 
 // ------- Externals de los switches -------
-extern unsigned short s1;
-extern unsigned short s2;
-extern unsigned short sac;
-extern unsigned char sac_aux;
 
 // ------- Externals de los timers -------
 extern volatile unsigned char switches_timer;
-extern volatile unsigned char acswitch_timer;
 
+// ------- Globales de los switches -------
+unsigned short s1;
+//unsigned short s2;
 
 // ------- Funciones del Modulo -------
-/*
+
 void UpdateSwitches (void)
 {
 	//revisa los switches cada 10ms
@@ -34,19 +32,20 @@ void UpdateSwitches (void)
 		else if (s1)
 			s1--;
 
-		if (S2_PIN)
-			s2++;
-		else if (s2 > 50)
-			s2 -= 50;
-		else if (s2 > 10)
-			s2 -= 5;
-		else if (s2)
-			s2--;
+
+//		if (S2_PIN)
+//			s2++;
+//		else if (s2 > 50)
+//			s2 -= 50;
+//		else if (s2 > 10)
+//			s2 -= 5;
+//		else if (s2)
+//			s2--;
 
 		switches_timer = SWITCHES_TIMER_RELOAD;
 	}
 }
-*/
+
 
 /*
 void UpdateACSwitch (void)
@@ -94,7 +93,7 @@ unsigned char CheckACSw (void)	//cada check tiene 12ms
 }
 */
 
-/*
+
 unsigned char CheckS1 (void)	//cada check tiene 10ms
 {
 	if (s1 > SWITCHES_THRESHOLD_FULL)
@@ -108,7 +107,7 @@ unsigned char CheckS1 (void)	//cada check tiene 10ms
 
 	return S_NO;
 }
-*/
+
 
 /*
 unsigned char CheckS2 (void)

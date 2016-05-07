@@ -22,7 +22,6 @@
 
 
 //--- VARIABLES EXTERNAS ---//
-extern volatile unsigned char timer_1seg;
 extern volatile unsigned short timer_led_comm;
 extern volatile unsigned short wait_ms_var;
 
@@ -111,28 +110,9 @@ void TIM_1_Init (void)
 }
 
 
-void TIM3_IRQHandler (void)	//1 ms
+void TIM3_IRQHandler (void)
 {
-	/*
-	Usart_Time_1ms ();
 
-	if (timer_1seg)
-	{
-		if (timer_1000)
-			timer_1000--;
-		else
-		{
-			timer_1seg--;
-			timer_1000 = 1000;
-		}
-	}
-
-	if (timer_led_comm)
-		timer_led_comm--;
-
-	if (timer_standby)
-		timer_standby--;
-	*/
 	//bajar flag
 	if (TIM3->SR & 0x01)	//bajo el flag
 		TIM3->SR = 0x00;

@@ -26,7 +26,10 @@
 
 //GPIOA pin5
 
-//GPIOA pin6	TIM3_CH1
+//GPIOA pin6
+#define MOSFET ((GPIOA->ODR & 0x0040) != 0)
+#define MOSFET_ON	GPIOA->BSRR = 0x00000040
+#define MOSFET_OFF GPIOA->BSRR = 0x00400000
 
 //GPIOA pin7
 
@@ -59,7 +62,7 @@
 //GPIOB pin6
 //GPIOB pin7
 
-
+#define S1_PIN		S_START
 
 //ESTADOS DEL PROGRAMA PRINCIPAL
 #define MAIN_INIT				0

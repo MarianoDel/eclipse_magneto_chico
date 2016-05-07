@@ -60,8 +60,6 @@
 
 
 //--- VARIABLES EXTERNAS ---//
-volatile unsigned char timer_1seg = 0;
-
 volatile unsigned short timer_led_comm = 0;
 
 // ------- Externals del Adc -------
@@ -76,6 +74,8 @@ volatile unsigned char seq_ready = 0;
 // ------- Externals de los Timers -------
 volatile unsigned short wait_ms_var = 0;
 volatile unsigned short prog_timer = 0;
+volatile unsigned char switches_timer = 0;
+
 
 
 // ------- Externals de los modos -------
@@ -88,25 +88,18 @@ volatile unsigned short prog_timer = 0;
 
 // ------- de los timers -------
 volatile unsigned short timer_standby;
-volatile unsigned short timer_dmx_display_show;
-volatile unsigned char display_timer;
 volatile unsigned char filter_timer;
-static __IO uint32_t TimingDelay;
+volatile unsigned char take_sample;
 
 //volatile unsigned char door_filter;
 //volatile unsigned char take_sample;
 //volatile unsigned char move_relay;
-//volatile unsigned char secs = 0;
-//volatile unsigned short minutes = 0;
+volatile unsigned short secs = 0;
+volatile unsigned short minutes = 0;
 
 // ------- del display -------
 unsigned char v_opt [10];
 
-
-// ------- del DMX -------
-volatile unsigned char signal_state = 0;
-volatile unsigned char dmx_timeout_timer = 0;
-//unsigned short tim_counter_65ms = 0;
 
 // ------- de los filtros DMX -------
 #define LARGO_F		32
@@ -197,23 +190,63 @@ int main(void)
 
 	 //PRUEBA LEDS
 
+//	 while (1)
+//	 {
+//		 if (LED1)
+//		 {
+//			 LED1_OFF;
+//			 LED2_OFF;
+//		 }
+//		 else
+//		 {
+//			 LED1_ON;
+//			 LED2_ON;
+//		 }
+//
+//		 Wait_ms(150);
+//	 }
+
+	 //FIN PRUEBA LEDS
+
+	 //PRUEBA LED, SWITCH y MOSFET
+
+//	 while (1)
+//	 {
+//		 if (CheckS1() > S_NO)
+//		 {
+//			 MOSFET_ON;
+//			 LED1_ON;
+//		 }
+//		 else
+//		 {
+//			 MOSFET_OFF;
+//			 LED1_OFF;
+//		 }
+//
+//		 UpdateSwitches();
+//	 }
+
+	 //FIN PRUEBA LED, SWITCH y MOSFET
+
+	 //PRUEBA LED, SWITCH y BUZZER
+
 	 while (1)
 	 {
-		 if (LED1)
+		 if (CheckS1() > S_NO)
 		 {
-			 LED1_OFF;
-			 LED2_OFF;
+			 BUZZER_ON;
+			 LED1_ON;
 		 }
 		 else
 		 {
-			 LED1_ON;
-			 LED2_ON;
+			 BUZZER_OFF;
+			 LED1_OFF;
 		 }
 
-		 Wait_ms(150);
+		 UpdateSwitches();
 	 }
 
-	 //FIN PRUEBA LEDS
+	 //FIN PRUEBA LED, SWITCH y BUZZER
 
 	//TIM Configuration.
 	//TIM_1_Init();
@@ -450,41 +483,27 @@ void TimingDelay_Decrement(void)
 	if (wait_ms_var)
 		wait_ms_var--;
 
-	if (display_timer)
-		display_timer--;
-
 	if (timer_standby)
 		timer_standby--;
 
-	if (dmx_timeout_timer)
-		dmx_timeout_timer--;
-
-	if (timer_dmx_display_show)
-		timer_dmx_display_show--;
-
-	if (prog_timer)
-		prog_timer--;
-
-//	if (take_sample)
-//		take_sample--;
+	if (take_sample)
+		take_sample--;
 
 	if (filter_timer)
 		filter_timer--;
 
+	if (switches_timer)
+		switches_timer--;
 
-	/*
-	//cuenta 1 segundo
-	if (button_timer_internal)
-		button_timer_internal--;
-	else
+	//cuenta de a 1 minuto
+	if (secs > 59999)	//pasaron 1 min
 	{
-		if (button_timer)
-		{
-			button_timer--;
-			button_timer_internal = 1000;
-		}
+		minutes++;
+		secs = 0;
 	}
-	*/
+	else
+		secs++;
+
 }
 
 
