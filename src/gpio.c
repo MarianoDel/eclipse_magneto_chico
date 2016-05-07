@@ -14,11 +14,8 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f0x_gpio.h"
-#include "stm32f0xx_gpio.h"
-#include "stm32f0xx_misc.h"
-#include "stm32f0xx_exti.h"
-
+#include "gpio.h"
+#include "stm32f0xx.h"
 #include "hard.h"
 
 
@@ -74,30 +71,30 @@ void GPIO_Config (void)
 
 
 	temp = GPIOA->MODER;	//2 bits por pin
-	temp &= 0xFC0CFC00;		//PA0 - PA4 analog input; PA8 PA10 PA11 PA12 output push pull
-	temp |= 0x015103FF;		//
+	temp &= 0x3C3FFCFC;		//PA0 analog input; PA4, PA11, PA12 output; PA15 input
+	temp |= 0x01400103;		//
 	GPIOA->MODER = temp;
 
 	temp = GPIOA->OTYPER;	//1 bit por pin
-	temp &= 0xFFFFFEFF;
-	temp |= 0x00000100;		//PA8 open drain
+	temp &= 0xFFFFFFFF;
+	temp |= 0x00000000;
 	GPIOA->OTYPER = temp;
 
 	temp = GPIOA->OSPEEDR;	//2 bits por pin
 	temp &= 0xFC0CFFFF;
-	temp |= 0x00000000;		//PA8 PA10 PA11 PA12 low speed
+	temp |= 0x00000000;
 	GPIOA->OSPEEDR = temp;
 
 	temp = GPIOA->PUPDR;	//2 bits por pin
-	temp &= 0xFFFFFFFF;
-	temp |= 0x00000000;		//
+	temp &= 0xFC3FFCFF;
+	temp |= 0x00000000;		//PA4, PA11, PA12 low speed
 	GPIOA->PUPDR = temp;
 
 	//Alternate Fuction
 	//en algunos perifericos necesito primero mandar el clk y luego la funciona alternativa
 	//como USART2
-	GPIOA->AFR[0] = 0x00001100;	//PA3 -> AF1; PA2 -> AF1
-	GPIOA->AFR[1] = 0x00000110;	//PA10 -> AF1; PA9 -> AF1
+	//GPIOA->AFR[0] = 0x00001100;	//PA3 -> AF1; PA2 -> AF1
+	//GPIOA->AFR[1] = 0x00000110;	//PA10 -> AF1; PA9 -> AF1
 
 #endif
 

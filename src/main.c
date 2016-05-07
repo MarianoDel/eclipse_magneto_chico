@@ -15,9 +15,8 @@
 
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f0xx.h"
-#include "stm32f0xx_conf.h"
-#include "stm32f0xx_adc.h"
+//#include "stm32f0xx_conf.h"
+//#include "stm32f0xx_adc.h"
 //#include "stm32f0xx_can.h"
 //#include "stm32f0xx_cec.h"
 //#include "stm32f0xx_comp.h"
@@ -28,20 +27,20 @@
 //#include "stm32f0xx_dma.h"
 //#include "stm32f0xx_exti.h"
 //#include "stm32f0xx_flash.h"
-#include "stm32f0xx_gpio.h"
+//#include "stm32f0xx_gpio.h"
 //#include "stm32f0xx_i2c.h"
 //#include "stm32f0xx_iwdg.h"
-#include "stm32f0xx_misc.h"
+//#include "stm32f0xx_misc.h"
 //#include "stm32f0xx_pwr.h"
-#include "stm32f0xx_rcc.h"
+//#include "stm32f0xx_rcc.h"
 //#include "stm32f0xx_rtc.h"
-#include "stm32f0xx_spi.h"
+//#include "stm32f0xx_spi.h"
 //#include "stm32f0xx_syscfg.h"
-#include "stm32f0xx_tim.h"
-#include "stm32f0xx_usart.h"
+//#include "stm32f0xx_tim.h"
+//#include "stm32f0xx_usart.h"
 //#include "stm32f0xx_wwdg.h"
-#include "system_stm32f0xx.h"
-#include "stm32f0xx_it.h"
+//#include "system_stm32f0xx.h"
+//#include "stm32f0xx_it.h"
 
 //#include <stdio.h>
 //#include <string.h>
@@ -49,19 +48,14 @@
 
 
 //--- My includes ---//
-#include "stm32f0x_gpio.h"
+#include "adc.h"
+#include "hard.h"
+#include "gpio.h"
 #include "stm32f0x_tim.h"
 #include "dsp.h"
 #include "stm32f0xx_dma.h"
-
-
-#include "hard.h"
-//#include "main.h"
-
-
-
+#include "stm32f0xx.h"
 #include "core_cm0.h"
-#include "adc.h"
 #include "flash_program.h"
 
 
@@ -186,10 +180,10 @@ int main(void)
 	{
 		while (1)	/* Capture error */
 		{
-			if (LEDR)
-				LEDR_OFF;
+			if (LED1)
+				LED1_OFF;
 			else
-				LEDR_ON;
+				LED1_ON;
 
 			for (i = 0; i < 255; i++)
 			{
@@ -202,36 +196,33 @@ int main(void)
 
 
 	 //PRUEBA LEDS
-	/*
+
 	 while (1)
 	 {
-		 if (LEDG)
+		 if (LED1)
 		 {
-			 LEDG_OFF;
-			 LEDY_OFF;
-			 LEDR_OFF;
+			 LED1_OFF;
+			 LED2_OFF;
 		 }
 		 else
 		 {
-			 LEDG_ON;
-			 LEDY_ON;
-			 LEDR_ON;
+			 LED1_ON;
+			 LED2_ON;
 		 }
 
 		 Wait_ms(150);
 	 }
-	*/
+
 	 //FIN PRUEBA LEDS
 
 	//TIM Configuration.
-	TIM_1_Init();
+	//TIM_1_Init();
+	TIM_3_Init();
 	TIM_14_Init();
-	//Timer_3_Init();
-	//Timer_4_Init();
 
-	LEDG_ON;
+	LED1_ON;
 	Wait_ms(1000);
-	LEDG_OFF;
+	LED1_OFF;
 
 	//ADC configuration.
 	AdcConfig();
@@ -251,17 +242,17 @@ int main(void)
 			ADC1->ISR |= ADC_IT_EOC;
 			onsync = 1;
 			DMA1_Channel1->CCR |= DMA_CCR_EN;
-			LEDG_ON;
+			LED1_ON;
 		}
 
 		//me fijo si hubo overrun
 		if (ADC1->ISR & ADC_IT_OVR)
 		{
 			ADC1->ISR |= ADC_IT_EOC | ADC_IT_EOSEQ | ADC_IT_OVR;
-			if (LEDY)
-				LEDY_OFF;
+			if (LED1)
+				LED1_OFF;
 			else
-				LEDY_ON;
+				LED1_ON;
 		}
 
 		if (DMA1->ISR & DMA1_FLAG_TC1)
@@ -272,10 +263,10 @@ int main(void)
 			//LED1_ON;
 			//Update_TIM1_CH2 (V_GRID_SENSE >> 2);
 			//LED1_OFF;
-			if (LEDR)
-				LEDR_OFF;
+			if (LED1)
+				LED1_OFF;
 			else
-				LEDR_ON;
+				LED1_ON;
 
 		}
 	}

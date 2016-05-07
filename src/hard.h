@@ -13,37 +13,39 @@
 
 
 //-------- End Of Defines For Configuration ------
-//GPIOA pin0	ADC FASE
-//GPIOA pin1	ADC VBAT
-//GPIOA pin2	ADC I_OUT
-//GPIOA pin3	ADC TEMP
-//GPIOA pin4	ADC SET_LOAD
+//GPIOA pin0	ADC FASE y SYNC
+
+//GPIOA pin1
+//GPIOA pin2
+//GPIOA pin3
+
+//GPIOA pin4
+#define BUZZER ((GPIOA->ODR & 0x0010) != 0)
+#define BUZZER_ON	GPIOA->BSRR = 0x00000010
+#define BUZZER_OFF GPIOA->BSRR = 0x00100000
 
 //GPIOA pin5
-//GPIOA pin6
+
+//GPIOA pin6	TIM3_CH1
+
 //GPIOA pin7
 
-//GPIOA pin8
-#define ACT ((GPIOA->ODR & 0x0100) != 0)
-#define ACT_ON	GPIOA->BSRR = 0x00000100
-#define ACT_OFF GPIOA->BSRR = 0x01000000
+//GPIOA pin8	ADC CURRENT_SENSE
 
 //GPIOA pin9
 
-//GPIOA pin10	usart tx rx
-#define LEDG ((GPIOA->ODR & 0x0400) != 0)
-#define LEDG_ON	GPIOA->BSRR = 0x00000400
-#define LEDG_OFF GPIOA->BSRR = 0x04000000
+//GPIOA pin10
+#define LED1 ((GPIOA->ODR & 0x0400) != 0)
+#define LED1_ON	GPIOA->BSRR = 0x00000400
+#define LED1_OFF GPIOA->BSRR = 0x04000000
 
 //GPIOA pin11
-#define LEDY ((GPIOA->ODR & 0x0800) != 0)
-#define LEDY_ON	GPIOA->BSRR = 0x00000800
-#define LEDY_OFF GPIOA->BSRR = 0x08000000
+#define LED2 ((GPIOA->ODR & 0x0800) != 0)
+#define LED2_ON	GPIOA->BSRR = 0x00000800
+#define LED2_OFF GPIOA->BSRR = 0x08000000
 
 //GPIOA pin12
-#define LEDR ((GPIOA->ODR & 0x1000) != 0)
-#define LEDR_ON	GPIOA->BSRR = 0x00001000
-#define LEDR_OFF GPIOA->BSRR = 0x10000000
+#define S_START ((GPIOA->IDR & 0x1000) == 0)
 
 //GPIOA pin13
 //GPIOA pin14
@@ -54,10 +56,6 @@
 //GPIOB pin3
 //GPIOB pin4
 //GPIOB pin5
-#define SYNC ((GPIOB->ODR & 0x0020) != 0)
-#define SYNC_ON	GPIOB->BSRR = 0x00000020
-#define SYNC_OFF GPIOB->BSRR = 0x00200000
-
 //GPIOB pin6
 //GPIOB pin7
 
