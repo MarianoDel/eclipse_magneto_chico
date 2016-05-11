@@ -26,10 +26,10 @@
 
 //GPIOA pin5
 
-//GPIOA pin6
-#define MOSFET ((GPIOA->ODR & 0x0040) != 0)
-#define MOSFET_ON	GPIOA->BSRR = 0x00000040
-#define MOSFET_OFF GPIOA->BSRR = 0x00400000
+//GPIOA pin6 funciona negado
+#define MOSFET ((GPIOA->ODR & 0x0040) == 0)
+#define MOSFET_OFF	GPIOA->BSRR = 0x00000040
+#define MOSFET_ON GPIOA->BSRR = 0x00400000
 
 //GPIOA pin7
 

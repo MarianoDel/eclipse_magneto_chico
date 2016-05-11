@@ -8,7 +8,6 @@
 #include "stm32f0xx.h"
 #include "hard.h"
 
-#include "stm32f0xx_adc.h"
 //la incluyo por constates como ADC_SampleTime_239_5Cycles
 
 //--- VARIABLES EXTERNAS ---//
@@ -46,8 +45,8 @@ void AdcConfig (void)
 
 	//set resolution & trigger
 	//ADC1->CFGR1 |= ADC_Resolution_10b | ADC_ExternalTrigConvEdge_Rising | ADC_ExternalTrigConv_T3_TRGO;
-	ADC1->CFGR1 |= ADC_Resolution_12b | ADC_ExternalTrigConvEdge_Rising | ADC_ExternalTrigConv_T1_TRGO;
-	ADC1->CFGR1 |= ADC_DMAMode_Circular | 0x00000001;
+	ADC1->CFGR1 |= ADC_Resolution_12b;
+	//ADC1->CFGR1 |= ADC_DMAMode_Circular | 0x00000001;
 	//ADC1->CFGR1 |= ADC_Resolution_10b | ADC_ExternalTrigConvEdge_Falling | ADC_ExternalTrigConv_T3_TRGO;
 
 	//set sampling time
@@ -58,7 +57,7 @@ void AdcConfig (void)
 	//ADC1->SMPR |= ADC_SampleTime_1_5Cycles;			//20.7 de salida son SP 420 (regula mal)
 
 	//set channel selection
-	ADC1->CHSELR |= ADC_Channel_0 | ADC_Channel_1 | ADC_Channel_2 | ADC_Channel_3 | ADC_Channel_4;
+	//ADC1->CHSELR |= ADC_Channel_0 | ADC_Channel_8;
 	//ADC1->CHSELR |= ADC_Channel_0 | ADC_Channel_1 | ADC_Channel_2;
 	//ADC1->CHSELR |= ADC_Channel_0 | ADC_Channel_1;
 	//ADC1->CHSELR |= ADC_Channel_2;	//individuales andan todos
@@ -75,7 +74,7 @@ void AdcConfig (void)
 #endif
 
 	//calibrar ADC
-	cal = ADC_GetCalibrationFactor(ADC1);
+	cal = ADCGetCalibrationFactor();
 
 	// Enable ADC1
 	ADC1->CR |= ADC_CR_ADEN;
@@ -216,3 +215,29 @@ unsigned short ReadADC1Check (unsigned char channel)
 	return 1;
 }
 
+unsigned int ADCGetCalibrationFactor (void)
+{
+  uint32_t tmpreg = 0, calibrationcounter = 0, calibrationstatus = 0;
+
+  /* Set the ADC calibartion */
+  ADC1->CR |= (uint32_t)ADC_CR_ADCAL;
+
+  /* Wait until no ADC calibration is completed */
+  do
+  {
+    calibrationstatus = ADC1->CR & ADC_CR_ADCAL;
+    calibrationcounter++;
+  } while((calibrationcounter != CALIBRATION_TIMEOUT) && (calibrationstatus != 0x00));
+
+  if((uint32_t)(ADC1->CR & ADC_CR_ADCAL) == RESET)
+  {
+    /*Get the calibration factor from the ADC data register */
+    tmpreg = ADC1->DR;
+  }
+  else
+  {
+    /* Error factor */
+    tmpreg = 0x00000000;
+  }
+  return tmpreg;
+}

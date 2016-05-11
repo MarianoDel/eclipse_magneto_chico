@@ -15,32 +15,6 @@
 
 
 /* Includes ------------------------------------------------------------------*/
-//#include "stm32f0xx_conf.h"
-//#include "stm32f0xx_adc.h"
-//#include "stm32f0xx_can.h"
-//#include "stm32f0xx_cec.h"
-//#include "stm32f0xx_comp.h"
-//#include "stm32f0xx_crc.h"
-//#include "stm32f0xx_crs.h"
-//#include "stm32f0xx_dac.h"
-//#include "stm32f0xx_dbgmcu.h"
-//#include "stm32f0xx_dma.h"
-//#include "stm32f0xx_exti.h"
-//#include "stm32f0xx_flash.h"
-//#include "stm32f0xx_gpio.h"
-//#include "stm32f0xx_i2c.h"
-//#include "stm32f0xx_iwdg.h"
-//#include "stm32f0xx_misc.h"
-//#include "stm32f0xx_pwr.h"
-//#include "stm32f0xx_rcc.h"
-//#include "stm32f0xx_rtc.h"
-//#include "stm32f0xx_spi.h"
-//#include "stm32f0xx_syscfg.h"
-//#include "stm32f0xx_tim.h"
-//#include "stm32f0xx_usart.h"
-//#include "stm32f0xx_wwdg.h"
-//#include "system_stm32f0xx.h"
-//#include "stm32f0xx_it.h"
 
 //#include <stdio.h>
 //#include <string.h>
@@ -53,7 +27,7 @@
 #include "gpio.h"
 #include "stm32f0x_tim.h"
 #include "dsp.h"
-#include "stm32f0xx_dma.h"
+//#include "stm32f0xx_dma.h"
 #include "stm32f0xx.h"
 #include "core_cm0.h"
 #include "flash_program.h"
@@ -105,10 +79,6 @@ unsigned char v_opt [10];
 #define LARGO_F		32
 #define DIVISOR_F	5
 unsigned char vd0 [LARGO_F + 1];
-unsigned char vd1 [LARGO_F + 1];
-unsigned char vd2 [LARGO_F + 1];
-unsigned char vd3 [LARGO_F + 1];
-unsigned char vd4 [LARGO_F + 1];
 
 
 #define IDLE	0
@@ -116,21 +86,11 @@ unsigned char vd4 [LARGO_F + 1];
 #define LOOK_FOR_MARK	2
 #define LOOK_FOR_START	3
 
-#define RCC_DMA_CLK (RCC->AHBENR & RCC_AHBENR_DMAEN)
-#define RCC_DMA_CLK_ON 		RCC->AHBENR |= RCC_AHBENR_DMAEN
-#define RCC_DMA_CLK_OFF 	RCC->AHBENR &= ~RCC_AHBENR_DMAEN
-
-
 //--- FUNCIONES DEL MODULO ---//
 void TimingDelay_Decrement(void);
 void DMAConfig(void);
 
 void Update_PWM (unsigned short);
-
-
-//unsigned char GetValue (unsigned char * , const unsigned short * );
-unsigned short GetValue (unsigned char * );
-
 
 
 #define DMX_TIMEOUT	20
@@ -156,7 +116,7 @@ int main(void)
 {
 	unsigned char i;
 	unsigned short ii;
-	unsigned char onsync = 0;
+	unsigned char sample_ready = 0;
 
 	//!< At this stage the microcontroller clock setting is already configured,
     //   this is done through SystemInit() function which is called from startup
@@ -189,7 +149,6 @@ int main(void)
 
 
 	 //PRUEBA LEDS
-
 //	 while (1)
 //	 {
 //		 if (LED1)
@@ -205,11 +164,9 @@ int main(void)
 //
 //		 Wait_ms(150);
 //	 }
-
 	 //FIN PRUEBA LEDS
 
 	 //PRUEBA LED, SWITCH y MOSFET
-
 //	 while (1)
 //	 {
 //		 if (CheckS1() > S_NO)
@@ -225,11 +182,9 @@ int main(void)
 //
 //		 UpdateSwitches();
 //	 }
-
 	 //FIN PRUEBA LED, SWITCH y MOSFET
 
 	 //PRUEBA LED, SWITCH y BUZZER
-
 	 while (1)
 	 {
 		 if (CheckS1() > S_NO)
@@ -245,7 +200,6 @@ int main(void)
 
 		 UpdateSwitches();
 	 }
-
 	 //FIN PRUEBA LED, SWITCH y BUZZER
 
 	//TIM Configuration.
@@ -261,50 +215,23 @@ int main(void)
 	AdcConfig();
 	ADC1->CR |= ADC_CR_ADSTART;
 
-	//DMA configuration.
-	DMAConfig();
 
-
-	//--- Prueba ADC y DMA ---//
+	//--- Prueba ADC ---//
 
 	while(1)
 	{
-		//busco sync con DMA
-		if ((!onsync) && (ADC1->ISR & ADC_IT_EOC))
+
+		if (ADC1->ISR & ADC_IT_EOC)
 		{
+			ii = ReadADC1_SameSampleTime (ADC_Channel_0);
 			ADC1->ISR |= ADC_IT_EOC;
-			onsync = 1;
-			DMA1_Channel1->CCR |= DMA_CCR_EN;
 			LED1_ON;
+			sample_ready = 1;
 		}
 
-		//me fijo si hubo overrun
-		if (ADC1->ISR & ADC_IT_OVR)
-		{
-			ADC1->ISR |= ADC_IT_EOC | ADC_IT_EOSEQ | ADC_IT_OVR;
-			if (LED1)
-				LED1_OFF;
-			else
-				LED1_ON;
-		}
-
-		if (DMA1->ISR & DMA1_FLAG_TC1)
-		{
-		    // Clear DMA TC flag
-			DMA1->IFCR = DMA1_FLAG_TC1;
-
-			//LED1_ON;
-			//Update_TIM1_CH2 (V_GRID_SENSE >> 2);
-			//LED1_OFF;
-			if (LED1)
-				LED1_OFF;
-			else
-				LED1_ON;
-
-		}
 	}
 
-	//--- Fin Prueba ADC y DMA ---//
+	//--- Fin Prueba ADC ---//
 
 
 
@@ -324,88 +251,6 @@ int main(void)
 //--- End of Main ---//
 
 
-/*
-unsigned char GetValue (unsigned char * pn, const unsigned short * new_val)
-{
-	unsigned char i;
-	unsigned char colon = 0;
-
-	//me fijo la posiciones de la , o ;
-	for (i = 0; i < 6; i++)
-	{
-		if ((*(pn + i) == ',') || ((*(pn + i) == ';')))
-		{
-			colon = i;
-			i = 6;
-		}
-	}
-
-	if ((colon == 0) || (colon >= 5))
-		return 0;
-
-	switch (colon)
-	{
-		case 1:
-			*new_val = *pn - '0';
-			break;
-
-		case 2:
-			*new_val = (*pn - '0') * 10 + (*(pn + 1) - '0');
-			break;
-
-		case 3:
-			*new_val = (*pn - '0') * 100 + (*(pn + 1) - '0') * 10 + (*(pn + 2) - '0');
-			break;
-
-		case 4:
-			*new_val = (*pn - '0') * 1000 + (*(pn + 1) - '0') * 100 + (*(pn + 2) - '0') * 10 + (*(pn + 2) - '0');
-			break;
-
-	}
-	return 1;
-}
-*/
-
-unsigned short GetValue (unsigned char * pn)
-{
-	unsigned char i;
-	unsigned char colon = 0;
-	unsigned short new_val = 0xffff;
-
-	//me fijo la posiciones de la , o ;
-	for (i = 0; i < 6; i++)
-	{
-		if ((*(pn + i) == ',') || ((*(pn + i) == ';')))
-		{
-			colon = i;
-			i = 6;
-		}
-	}
-
-	if ((colon == 0) || (colon >= 5))
-		return 0;
-
-	switch (colon)
-	{
-		case 1:
-			new_val = *pn - '0';
-			break;
-
-		case 2:
-			new_val = (*pn - '0') * 10 + (*(pn + 1) - '0');
-			break;
-
-		case 3:
-			new_val = (*pn - '0') * 100 + (*(pn + 1) - '0') * 10 + (*(pn + 2) - '0');
-			break;
-
-		case 4:
-			new_val = (*pn - '0') * 1000 + (*(pn + 1) - '0') * 100 + (*(pn + 2) - '0') * 10 + (*(pn + 2) - '0');
-			break;
-
-	}
-	return new_val;
-}
 
 void Update_PWM (unsigned short pwm)
 {
@@ -504,32 +349,6 @@ void TimingDelay_Decrement(void)
 	else
 		secs++;
 
-}
-
-
-void DMAConfig(void)
-{
-	/* DMA1 clock enable */
-	if (!RCC_DMA_CLK)
-		RCC_DMA_CLK_ON;
-
-	//Configuro el control del DMA CH1
-	DMA1_Channel1->CCR = 0;
-	DMA1_Channel1->CCR |= DMA_Priority_VeryHigh | DMA_MemoryDataSize_HalfWord | DMA_PeripheralDataSize_HalfWord | DMA_MemoryInc_Enable;
-	//DMA1_Channel1->CCR |= DMA_Mode_Circular | DMA_CCR_TCIE;
-	DMA1_Channel1->CCR |= DMA_Mode_Circular;
-
-	//Tamaño del buffer a transmitir
-	DMA1_Channel1->CNDTR = 5;
-
-	//Address del periferico
-	DMA1_Channel1->CPAR = (uint32_t) &ADC1->DR;
-
-	//Address en memoria
-	DMA1_Channel1->CMAR = (uint32_t) &adc_ch[0];
-
-	//Enable
-	//DMA1_Channel1->CCR |= DMA_CCR_EN;
 }
 
 
