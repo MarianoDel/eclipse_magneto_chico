@@ -36,19 +36,11 @@
 //--- VARIABLES EXTERNAS ---//
 volatile unsigned short timer_led_comm = 0;
 
-// ------- Externals del Adc -------
-volatile unsigned short adc_ch [5];
-volatile unsigned char need_to_sync;
-volatile unsigned char freq_ready;
-volatile unsigned short lastC0V;
-volatile unsigned char zero_cross = 0;
-
-volatile unsigned char seq_ready = 0;
-
 // ------- Externals de los Timers -------
 volatile unsigned short wait_ms_var = 0;
 volatile unsigned short prog_timer = 0;
 volatile unsigned char switches_timer = 0;
+volatile unsigned short buzzer_timer = 0;
 
 
 
@@ -88,13 +80,12 @@ unsigned char vd0 [LARGO_F + 1];
 
 //--- FUNCIONES DEL MODULO ---//
 void TimingDelay_Decrement(void);
-void DMAConfig(void);
 
-void Update_PWM (unsigned short);
+void UpdateSync (void);
+void UpdateVpeak (void);
+unsigned short CheckVin (void);
+unsigned short CheckSync (void);
 
-
-#define DMX_TIMEOUT	20
-unsigned char MAFilter (unsigned char, unsigned char *);
 
 //--- FILTROS DE SENSORES ---//
 #define LARGO_FILTRO 16
@@ -117,6 +108,7 @@ int main(void)
 	unsigned char i;
 	unsigned short ii;
 	unsigned char sample_ready = 0;
+	enum var_main_state main_state;
 
 	//!< At this stage the microcontroller clock setting is already configured,
     //   this is done through SystemInit() function which is called from startup
@@ -185,21 +177,21 @@ int main(void)
 	 //FIN PRUEBA LED, SWITCH y MOSFET
 
 	 //PRUEBA LED, SWITCH y BUZZER
-	 while (1)
-	 {
-		 if (CheckS1() > S_NO)
-		 {
-			 BUZZER_ON;
-			 LED1_ON;
-		 }
-		 else
-		 {
-			 BUZZER_OFF;
-			 LED1_OFF;
-		 }
-
-		 UpdateSwitches();
-	 }
+//	 while (1)
+//	 {
+//		 if (CheckS1() > S_NO)
+//		 {
+//			 BUZZER_ON;
+//			 LED1_ON;
+//		 }
+//		 else
+//		 {
+//			 BUZZER_OFF;
+//			 LED1_OFF;
+//		 }
+//
+//		 UpdateSwitches();
+//	 }
 	 //FIN PRUEBA LED, SWITCH y BUZZER
 
 	//TIM Configuration.
@@ -216,112 +208,95 @@ int main(void)
 	ADC1->CR |= ADC_CR_ADSTART;
 
 
-	//--- Prueba ADC ---//
+	//--- Loop Principal ---//
+	LEDR_ON;
+	LEDG_ON;
+	timer_standby = 2000;
 
 	while(1)
 	{
-
-		if (ADC1->ISR & ADC_IT_EOC)
+		switch (main_state)
 		{
-			ii = ReadADC1_SameSampleTime (ADC_Channel_0);
-			ADC1->ISR |= ADC_IT_EOC;
-			LED1_ON;
-			sample_ready = 1;
+			case MAIN_INIT:
+				if (!timer_standby)
+				{
+					LEDR_OFF;
+					LEDG_OFF;
+					main_state++;
+				}
+				break;
+
+			case MAIN_STANDBY:
+				if (CheckS1() > S_NO)
+				{
+					main_state = MAIN_GEN;
+					BuzzerCommands(BUZZER_MULTIPLE_SHORT, 1);
+					LEDR_ON;
+					timer_standby = 3000;
+				}
+
+				break;
+
+			case MAIN_GEN:
+				if (!timer_standby)
+					main_state = MAIN_INIT;
+
+
+
+
+				break;
+
+			case MAIN_PAUSE:
+				break;
+
+			case MAIN_FINISH:
+				break;
+
+			case MAIN_ERROR:
+				break;
+
+			default:
+				main_state = MAIN_INIT;
+				break;
 		}
+//		ii = ReadADC1_SameSampleTime (ADC_Channel_0);
+//		LED1_ON;
+
+
+		UpdateSync();
+
+		UpdateVpeak();
+
+		UpdateBuzzer();
+
+		UpdateSwitches();
+
 
 	}
-
-	//--- Fin Prueba ADC ---//
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	//--- Fin Loop Principal ---//
 	return 0;
 }
 //--- End of Main ---//
 
-
-
-void Update_PWM (unsigned short pwm)
+void UpdateSync (void)
 {
-	Update_TIM3_CH1 (pwm);
-	Update_TIM3_CH2 (4095 - pwm);
+
 }
 
-void UpdateDMX (unsigned char * pckt, unsigned short ch, unsigned char val)
+void UpdateVpeak (void)
 {
-	if ((ch > 0) && (ch < 512))
-		*(pckt + ch) = val;
+
 }
 
-/*
-unsigned short Get_Temp (void)
+unsigned short CheckVin (void)
 {
-	unsigned short total_ma;
-	unsigned char j;
-
-	//Kernel mejorado ver 2
-	//si el vector es de 0 a 7 (+1) sumo todas las posiciones entre 1 y 8, acomodo el nuevo vector entre 0 y 7
-	total_ma = 0;
-	vtemp[LARGO_FILTRO] = ReadADC1 (CH_IN_TEMP);
-    for (j = 0; j < (LARGO_FILTRO); j++)
-    {
-    	total_ma += vtemp[j + 1];
-    	vtemp[j] = vtemp[j + 1];
-    }
-
-    return total_ma >> DIVISOR;
-}
-*/
-
-unsigned char MAFilter (unsigned char new_sample, unsigned char * vsample)
-{
-	unsigned short total_ma;
-	unsigned char j;
-
-	//Kernel mejorado ver 2
-	//si el vector es de 0 a 7 (+1) sumo todas las posiciones entre 1 y 8, acomodo el nuevo vector entre 0 y 7
-	total_ma = 0;
-	*(vsample + LARGO_F) = new_sample;
-
-    for (j = 0; j < (LARGO_F); j++)
-    {
-    	total_ma += *(vsample + j + 1);
-    	*(vsample + j) = *(vsample + j + 1);
-    }
-
-    return total_ma >> DIVISOR_F;
+	return 0;
 }
 
-unsigned short MAFilter16 (unsigned char new_sample, unsigned char * vsample)
+unsigned short CheckSync (void)
 {
-	unsigned short total_ma;
-	unsigned char j;
-
-	//Kernel mejorado ver 2
-	//si el vector es de 0 a 7 (+1) sumo todas las posiciones entre 1 y 8, acomodo el nuevo vector entre 0 y 7
-	total_ma = 0;
-	*(vsample + LARGO_F) = new_sample;
-
-    for (j = 0; j < (LARGO_F); j++)
-    {
-    	total_ma += *(vsample + j + 1);
-    	*(vsample + j) = *(vsample + j + 1);
-    }
-
-    return total_ma >> DIVISOR_F;
+	return 0;
 }
-
 
 void TimingDelay_Decrement(void)
 {
@@ -339,6 +314,9 @@ void TimingDelay_Decrement(void)
 
 	if (switches_timer)
 		switches_timer--;
+
+	if (buzzer_timer)
+		buzzer_timer--;
 
 	//cuenta de a 1 minuto
 	if (secs > 59999)	//pasaron 1 min
