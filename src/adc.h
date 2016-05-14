@@ -19,7 +19,6 @@
 #define ADC_IT_OVR                                 ADC_IER_OVRIE
 #define ADC_IT_AWD                                 ADC_IER_AWDIE
 
-
 #define ADC_CH0		0x00000001
 #define ADC_CH1		0x00000002
 #define ADC_CH2		0x00000004

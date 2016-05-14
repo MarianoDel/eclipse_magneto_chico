@@ -34,13 +34,14 @@
 
 
 //--- VARIABLES EXTERNAS ---//
-volatile unsigned short timer_led_comm = 0;
+
 
 // ------- Externals de los Timers -------
 volatile unsigned short wait_ms_var = 0;
 volatile unsigned short prog_timer = 0;
 volatile unsigned char switches_timer = 0;
 volatile unsigned short buzzer_timer = 0;
+volatile unsigned short timer_led_error = 0;
 
 
 
@@ -56,6 +57,7 @@ volatile unsigned short buzzer_timer = 0;
 volatile unsigned short timer_standby;
 volatile unsigned char filter_timer;
 volatile unsigned char take_sample;
+volatile unsigned short timer_led = 0;
 
 //volatile unsigned char door_filter;
 //volatile unsigned char take_sample;
@@ -106,9 +108,11 @@ unsigned short vpote [LARGO_FILTRO + 1];
 int main(void)
 {
 	unsigned char i;
-	unsigned short ii;
-	unsigned char sample_ready = 0;
+	unsigned char mosfet_edge_up = 0;
+	unsigned char mosfet_edge_dwn = 0;
 	enum var_main_state main_state;
+	unsigned char not_beeped = 0;
+	unsigned char minutes_paused = 0;
 
 	//!< At this stage the microcontroller clock setting is already configured,
     //   this is done through SystemInit() function which is called from startup
@@ -222,6 +226,8 @@ int main(void)
 				{
 					LEDR_OFF;
 					LEDG_OFF;
+					not_beeped = 0;
+					minutes_paused = 0;
 					main_state++;
 				}
 				break;
@@ -232,24 +238,92 @@ int main(void)
 					main_state = MAIN_GEN;
 					BuzzerCommands(BUZZER_MULTIPLE_SHORT, 1);
 					LEDR_ON;
-					timer_standby = 3000;
 				}
+				break;
 
+			case MAIN_STANDBY_1:
+				if (CheckS1() == S_NO)
+				{
+					minutes = 45;
+					main_state = MAIN_GEN;
+					while (!mosfet_edge_up);
+					MOSFET_ON;
+				}
 				break;
 
 			case MAIN_GEN:
-				if (!timer_standby)
+				//Generando señal
+				if (timer_led)
+				{
+					if (LEDG)
+						LEDG_OFF;
+					else
+						LEDG_ON;
+					timer_led = 1500;
+				}
+
+				if ((minutes < 5) && (not_beeped))
+				{
+					not_beeped = 1;
+					BuzzerCommands(BUZZER_MULTIPLE_SHORT, 1);
+				}
+
+				if (!minutes)
+				{
+					BuzzerCommands(BUZZER_MULTIPLE_SHORT, 3);
+					main_state = MAIN_FINISH;
+				}
+
+				if (CheckS1 > S_NO)
+				{
+					//reviso por pausa o por stop
+					main_state = MAIN_CHECK_PAUSE_OR_STOP;
+					timer_standby = 1500;
+					LEDG_ON;
+					while (!mosfet_edge_dwn);
+					MOSFET_OFF;
+				}
+				break;
+
+			case MAIN_CHECK_PAUSE_OR_STOP:
+				if ((timer_standby) && (CheckS1() == S_NO))		//es una pausa
+				{
+					main_state = MAIN_PAUSE;
+					minutes_paused = minutes;
+				}
+
+				if (CheckS1() > S_HALF)		//es un STOP
+				{
 					main_state = MAIN_INIT;
-
-
-
-
+					timer_standby = 2000;
+					BuzzerCommands(BUZZER_MULTIPLE_LONG, 1);
+				}
 				break;
 
 			case MAIN_PAUSE:
+				if (CheckS1() > S_NO)
+				{
+					minutes = minutes_paused;
+					main_state = MAIN_GEN;
+					while (!mosfet_edge_up);
+					MOSFET_ON;
+				}
+
+				if (timer_led)
+				{
+					if (LEDG)
+						LEDG_OFF;
+					else
+						LEDG_ON;
+					timer_led = 300;
+				}
 				break;
 
 			case MAIN_FINISH:
+				if (!timer_standby)
+				{
+					main_state = MAIN_INIT;
+				}
 				break;
 
 			case MAIN_ERROR:
@@ -270,6 +344,8 @@ int main(void)
 		UpdateBuzzer();
 
 		UpdateSwitches();
+
+		UpdateErrors();
 
 
 	}
@@ -317,6 +393,12 @@ void TimingDelay_Decrement(void)
 
 	if (buzzer_timer)
 		buzzer_timer--;
+
+	if (timer_led)
+		timer_led--;
+
+	if (timer_led_error)
+		timer_led_error--;
 
 	//cuenta de a 1 minuto
 	if (secs > 59999)	//pasaron 1 min

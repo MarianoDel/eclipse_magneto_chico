@@ -104,34 +104,56 @@ enum var_main_state
 {
 	MAIN_INIT = 0,
 	MAIN_STANDBY,
+	MAIN_STANDBY_1,
 	MAIN_GEN,
+	MAIN_CHECK_PAUSE_OR_STOP,
 	MAIN_PAUSE,
 	MAIN_FINISH,
 	MAIN_ERROR
 
 };
 
- //ESTADOS DEL BUZZER
- #define BUZZER_INIT		0
- #define BUZZER_TO_STOP		10
+ //estados de ERRORES
+enum var_error_states
+{
+	ERROR_NO = 0,
+	ERROR_IPEAK,
+	ERROR_VIN,
+	ERROR_VBAT,
+	ERROR_VBAT_REVERSAL,
+	ERROR_TEMP,
+	ERROR_RUN,
+	ERROR_RUN_A,
+	ERROR_RUN_B
 
- #define BUZZER_MULTIPLE_LONG			40
- #define BUZZER_MULTIPLE_LONGA			41
- #define BUZZER_MULTIPLE_LONGB			42
+};
 
- #define BUZZER_MULTIPLE_HALF			50
- #define BUZZER_MULTIPLE_HALFA			51
- #define BUZZER_MULTIPLE_HALFB			52
+//timeout de los ERRORES
+#define TT_BIP_LONG		1000
+#define TT_BIP_SHORT	300
 
- #define BUZZER_MULTIPLE_SHORT			60
- #define BUZZER_MULTIPLE_SHORTA			61
- #define BUZZER_MULTIPLE_SHORTB			62
 
- //COMANDOS DEL BUZZER	(tienen que ser los del estado de arriba)
- #define BUZZER_STOP_CMD		10
- #define BUZZER_LONG_CMD		40
- #define BUZZER_HALF_CMD		50
- #define BUZZER_SHORT_CMD	60
+//ESTADOS DEL BUZZER
+#define BUZZER_INIT		0
+#define BUZZER_TO_STOP		10
+
+#define BUZZER_MULTIPLE_LONG			40
+#define BUZZER_MULTIPLE_LONGA			41
+#define BUZZER_MULTIPLE_LONGB			42
+
+#define BUZZER_MULTIPLE_HALF			50
+#define BUZZER_MULTIPLE_HALFA			51
+#define BUZZER_MULTIPLE_HALFB			52
+
+#define BUZZER_MULTIPLE_SHORT			60
+#define BUZZER_MULTIPLE_SHORTA			61
+#define BUZZER_MULTIPLE_SHORTB			62
+
+//COMANDOS DEL BUZZER	(tienen que ser los del estado de arriba)
+#define BUZZER_STOP_CMD		10
+#define BUZZER_LONG_CMD		40
+#define BUZZER_HALF_CMD		50
+#define BUZZER_SHORT_CMD	60
 
 #define TIM_BIP_SHORT		50
 #define TIM_BIP_SHORT_WAIT		100
@@ -146,6 +168,8 @@ void UpdateSwitches (void);
 unsigned char CheckS1 (void);
 void BuzzerCommands(unsigned char , unsigned char);
 void UpdateBuzzer (void);
+void UpdateErrors (void);
+void ErrorCommands(unsigned char);
 
 
 

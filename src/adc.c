@@ -8,7 +8,6 @@
 #include "stm32f0xx.h"
 #include "hard.h"
 
-//la incluyo por constates como ADC_SampleTime_239_5Cycles
 
 //--- VARIABLES EXTERNAS ---//
 extern volatile unsigned short adc_ch [];

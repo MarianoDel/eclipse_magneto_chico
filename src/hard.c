@@ -12,6 +12,7 @@
 // ------- Externals de los timers -------
 extern volatile unsigned char switches_timer;
 extern volatile unsigned short buzzer_timer;
+extern volatile unsigned short timer_led_error;
 
 #define buzzer_timeout buzzer_timer
 
@@ -22,6 +23,11 @@ unsigned short s1;
 // ------- Globales del buzzer -------
 unsigned char buzzer_state = 0;
 unsigned char buzz_multiple = 0;
+
+// ------- de los led y errores -------
+enum var_error_states error_state = ERROR_NO;
+unsigned char error_bips = 0;
+unsigned char error_bips_counter = 0;
 
 
 // ------- Funciones del Modulo -------
@@ -244,3 +250,94 @@ void UpdateBuzzer (void)
 			break;
 	}
 }
+
+void UpdateErrors (void)
+{
+	switch (error_state)
+	{
+		case ERROR_NO:
+			break;
+
+		case ERROR_IPEAK:
+			error_bips = 1;
+			error_state = ERROR_RUN;
+			break;
+
+		case ERROR_VIN:
+			error_bips = 2;
+			error_bips_counter = error_bips;
+			error_state = ERROR_RUN;
+			break;
+
+		case ERROR_VBAT:
+			error_bips = 3;
+			error_bips_counter = error_bips;
+			error_state = ERROR_RUN;
+			break;
+
+		case ERROR_VBAT_REVERSAL:
+			error_bips = 5;
+			error_bips_counter = error_bips;
+			error_state = ERROR_RUN;
+			break;
+
+		case ERROR_TEMP:
+			error_bips = 4;
+			error_bips_counter = error_bips;
+			error_state = ERROR_RUN;
+			break;
+
+		case ERROR_RUN:
+			if (!timer_led_error)
+			{
+				error_state = ERROR_RUN_A;
+				error_bips_counter = error_bips;
+			}
+
+			break;
+
+		case ERROR_RUN_A:
+			if (!timer_led_error)
+			{
+				if (error_bips_counter)
+				{
+					LEDR_ON;
+					error_bips_counter--;
+					error_state++;
+					timer_led_error = TT_BIP_SHORT;
+				}
+				else
+				{
+					LEDR_OFF;
+					timer_led_error = TT_BIP_LONG;
+					error_state = ERROR_RUN;		//termina el ciclo hago la espera larga
+				}
+			}
+			break;
+
+		case ERROR_RUN_B:
+			if (!timer_led_error)
+			{
+				LEDR_OFF;
+				timer_led_error = TT_BIP_SHORT;
+				error_state--;
+			}
+			break;
+
+		default:
+			LEDR_OFF;
+			error_state = ERROR_NO;
+			timer_led_error = 0;
+			break;
+	}
+}
+
+void ErrorCommands(unsigned char command)
+{
+	if (command == ERROR_NO)
+		LEDR_OFF;
+
+	error_state = command;
+}
+
+
