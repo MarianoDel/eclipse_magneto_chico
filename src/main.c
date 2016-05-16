@@ -62,7 +62,7 @@ volatile unsigned short timer_led = 0;
 //volatile unsigned char door_filter;
 //volatile unsigned char take_sample;
 //volatile unsigned char move_relay;
-volatile unsigned short secs = 0;
+volatile unsigned short msecs = 0;
 volatile unsigned short minutes = 0;
 
 // ------- del display -------
@@ -74,11 +74,6 @@ unsigned char v_opt [10];
 #define DIVISOR_F	5
 unsigned char vd0 [LARGO_F + 1];
 
-
-#define IDLE	0
-#define LOOK_FOR_BREAK	1
-#define LOOK_FOR_MARK	2
-#define LOOK_FOR_START	3
 
 //--- FUNCIONES DEL MODULO ---//
 void TimingDelay_Decrement(void);
@@ -110,9 +105,11 @@ int main(void)
 	unsigned char i;
 	unsigned char mosfet_edge_up = 0;
 	unsigned char mosfet_edge_dwn = 0;
-	enum var_main_state main_state;
+	enum var_main_state main_state = MAIN_INIT;
 	unsigned char not_beeped = 0;
 	unsigned char minutes_paused = 0;
+	unsigned short vin_local = 0;
+	unsigned short i_local = 0;
 
 	//!< At this stage the microcontroller clock setting is already configured,
     //   this is done through SystemInit() function which is called from startup
@@ -198,6 +195,24 @@ int main(void)
 //	 }
 	 //FIN PRUEBA LED, SWITCH y BUZZER
 
+	 //PRUEBA LED Y SYNC
+//	 while (1)
+//	 {
+//		 if (SYNC)
+//		 {
+//			 SYNC_OFF;
+//			 LED1_ON;
+//		 }
+//		 else
+//		 {
+//			 SYNC_ON;
+//			 LED1_OFF;
+//		 }
+//
+//		 Wait_ms (100);
+//	 }
+	 //FIN PRUEBA LED Y SYNC
+
 	//TIM Configuration.
 	//TIM_1_Init();
 	TIM_3_Init();
@@ -225,7 +240,6 @@ int main(void)
 				if (!timer_standby)
 				{
 					LEDR_OFF;
-					LEDG_OFF;
 					not_beeped = 0;
 					minutes_paused = 0;
 					main_state++;
@@ -235,7 +249,7 @@ int main(void)
 			case MAIN_STANDBY:
 				if (CheckS1() > S_NO)
 				{
-					main_state = MAIN_GEN;
+					main_state = MAIN_STANDBY_1;
 					BuzzerCommands(BUZZER_MULTIPLE_SHORT, 1);
 					LEDR_ON;
 				}
@@ -244,16 +258,19 @@ int main(void)
 			case MAIN_STANDBY_1:
 				if (CheckS1() == S_NO)
 				{
+					//espero edge dwn o timeout
+					timer_standby = 3000;
+					while ((!mosfet_edge_up) && (timer_standby));
+					MOSFET_ON;
 					minutes = 45;
 					main_state = MAIN_GEN;
-					while (!mosfet_edge_up);
-					MOSFET_ON;
+					LEDR_OFF;
 				}
 				break;
 
 			case MAIN_GEN:
 				//Generando señal
-				if (timer_led)
+				if (!timer_led)
 				{
 					if (LEDG)
 						LEDG_OFF;
@@ -274,14 +291,25 @@ int main(void)
 					main_state = MAIN_FINISH;
 				}
 
-				if (CheckS1 > S_NO)
+				if (CheckS1() > S_NO)
 				{
 					//reviso por pausa o por stop
 					main_state = MAIN_CHECK_PAUSE_OR_STOP;
-					timer_standby = 1500;
+					timer_standby = 20;
 					LEDG_ON;
-					while (!mosfet_edge_dwn);
+					//espero edge dwn o timeout
+					while ((!mosfet_edge_dwn) && (timer_standby));
 					MOSFET_OFF;
+					timer_standby = 1500;
+				}
+
+				//Chequeo IPEAK
+				i_local = ReadADC1_SameSampleTime (ADC_Channel_8);
+				if (i_local > IPEAK)
+				{
+					main_state = MAIN_ERROR;
+					ErrorCommands(ERROR_IPEAK);
+					timer_standby = 10000;		//10 segundos
 				}
 				break;
 
@@ -290,13 +318,16 @@ int main(void)
 				{
 					main_state = MAIN_PAUSE;
 					minutes_paused = minutes;
+					BuzzerCommands(BUZZER_MULTIPLE_SHORT, 1);
 				}
 
 				if (CheckS1() > S_HALF)		//es un STOP
 				{
-					main_state = MAIN_INIT;
+					main_state = MAIN_TO_STOP;
 					timer_standby = 2000;
 					BuzzerCommands(BUZZER_MULTIPLE_LONG, 1);
+					LEDR_ON;
+					LEDG_ON;
 				}
 				break;
 
@@ -304,18 +335,36 @@ int main(void)
 				if (CheckS1() > S_NO)
 				{
 					minutes = minutes_paused;
-					main_state = MAIN_GEN;
-					while (!mosfet_edge_up);
-					MOSFET_ON;
+					main_state = MAIN_PAUSE_1;
 				}
 
-				if (timer_led)
+				if (!timer_led)
 				{
 					if (LEDG)
 						LEDG_OFF;
 					else
 						LEDG_ON;
 					timer_led = 300;
+				}
+				break;
+
+			case MAIN_PAUSE_1:
+				if (CheckS1() == S_NO)
+				{
+					timer_standby = 20;
+					//espero edge dwn o timeout
+					while ((!mosfet_edge_up) && (timer_standby));
+					MOSFET_ON;
+					BuzzerCommands(BUZZER_MULTIPLE_SHORT, 2);
+					main_state = MAIN_GEN;
+				}
+				break;
+
+			case MAIN_TO_STOP:
+				if (!timer_standby)
+				{
+					if (CheckS1() == S_NO)
+						main_state = MAIN_INIT;
 				}
 				break;
 
@@ -327,17 +376,59 @@ int main(void)
 				break;
 
 			case MAIN_ERROR:
+				if (!timer_standby)
+				{
+					if (CheckS1() > S_NO)
+					{
+						minutes = minutes_paused;
+						main_state = MAIN_GEN;
+						timer_standby = 20;
+						//espero edge dwn o timeout
+						while ((!mosfet_edge_up) && (timer_standby));
+						MOSFET_ON;
+					}
+				}
 				break;
 
 			default:
 				main_state = MAIN_INIT;
 				break;
 		}
-//		ii = ReadADC1_SameSampleTime (ADC_Channel_0);
-//		LED1_ON;
 
+		//Verifico fase con ADC
+		vin_local = ReadADC1_SameSampleTime (ADC_Channel_0);
 
-		UpdateSync();
+		if (vin_local > VOLTAGE_SYNC_ON)
+		{
+			if (!SYNC)		//si venia de no estar en SYNC pongo el flag durante una muestra
+				mosfet_edge_up = 1;
+			else
+				mosfet_edge_up = 0;
+
+			SYNC_ON;
+		}
+		else if (vin_local < VOLTAGE_SYNC_OFF)
+		{
+			SYNC_OFF;
+		}
+
+		if (main_state == MAIN_GEN)
+		{
+			if (i_local > CURRENT_SYNCI_ON)
+			{
+				SYNCI_ON;
+			}
+			else if (i_local < CURRENT_SYNCI_OFF)
+			{
+				if (SYNCI)		//si venia con SYNCI pongo el flag durante una muestra
+					mosfet_edge_dwn = 1;
+				else
+					mosfet_edge_dwn = 0;
+
+				SYNCI_OFF;
+			}
+		}
+
 
 		UpdateVpeak();
 
@@ -347,17 +438,11 @@ int main(void)
 
 		UpdateErrors();
 
-
 	}
 	//--- Fin Loop Principal ---//
 	return 0;
 }
 //--- End of Main ---//
-
-void UpdateSync (void)
-{
-
-}
 
 void UpdateVpeak (void)
 {
@@ -401,13 +486,13 @@ void TimingDelay_Decrement(void)
 		timer_led_error--;
 
 	//cuenta de a 1 minuto
-	if (secs > 59999)	//pasaron 1 min
+	if (msecs > 59999)	//pasaron 1 min
 	{
 		minutes++;
-		secs = 0;
+		msecs = 0;
 	}
 	else
-		secs++;
+		msecs++;
 
 }
 

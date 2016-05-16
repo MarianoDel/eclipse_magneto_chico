@@ -17,6 +17,10 @@
 
 //GPIOA pin1
 //GPIOA pin2
+#define SYNCI ((GPIOA->ODR & 0x0004) != 0)
+#define SYNCI_ON	GPIOA->BSRR = 0x00000004
+#define SYNCI_OFF GPIOA->BSRR = 0x00040000
+
 //GPIOA pin3
 
 //GPIOA pin4
@@ -26,7 +30,7 @@
 
 //GPIOA pin5
 
-//GPIOA pin6 funciona negado
+//GPIOA pin6
 #define MOSFET ((GPIOA->ODR & 0x0040) == 0)
 #define MOSFET_OFF	GPIOA->BSRR = 0x00000040
 #define MOSFET_ON GPIOA->BSRR = 0x00400000
@@ -42,25 +46,30 @@
 #define LED1_ON	GPIOA->BSRR = 0x00000400
 #define LED1_OFF GPIOA->BSRR = 0x04000000
 
-#define LEDR 		LED1
-#define LEDR_ON		LED1_ON
-#define LEDR_OFF 	LED1_OFF
+#define LEDG 		LED1
+#define LEDG_ON		LED1_ON
+#define LEDG_OFF 	LED1_OFF
 
 //GPIOA pin11
 #define LED2 ((GPIOA->ODR & 0x0800) != 0)
 #define LED2_ON	GPIOA->BSRR = 0x00000800
 #define LED2_OFF GPIOA->BSRR = 0x08000000
 
-#define LEDG 		LED2
-#define LEDG_ON		LED2_ON
-#define LEDG_OFF 	LED2_OFF
+#define LEDR 		LED2
+#define LEDR_ON		LED2_ON
+#define LEDR_OFF 	LED2_OFF
 
 //GPIOA pin12
 #define S_START ((GPIOA->IDR & 0x1000) == 0)
 
 //GPIOA pin13
 //GPIOA pin14
+
 //GPIOA pin15
+#define SYNC ((GPIOA->ODR & 0x8000) != 0)
+#define SYNC_ON	GPIOA->BSRR = 0x00008000
+#define SYNC_OFF GPIOA->BSRR = 0x80000000
+
 
 //GPIOB pin0
 //GPIOB pin1
@@ -108,6 +117,8 @@ enum var_main_state
 	MAIN_GEN,
 	MAIN_CHECK_PAUSE_OR_STOP,
 	MAIN_PAUSE,
+	MAIN_PAUSE_1,
+	MAIN_TO_STOP,
 	MAIN_FINISH,
 	MAIN_ERROR
 
@@ -127,6 +138,18 @@ enum var_error_states
 	ERROR_RUN_B
 
 };
+
+#define IPEAK	3071	//1.5A
+//#define VOLTAGE_ZERO		2048	//---- Valores de tension del ADC
+//#define VOLTAGE_ZERO		1950	//zero corregido 1.76V
+//#define VOLTAGE_MIN			2250
+//#define VOLTAGE_MIN			(VOLTAGE_ZERO + 150)
+#define VOLTAGE_SYNC_ON		100
+#define VOLTAGE_SYNC_OFF	50
+
+#define CURRENT_SYNCI_ON	100
+#define CURRENT_SYNCI_OFF	50
+
 
 //timeout de los ERRORES
 #define TT_BIP_LONG		1000
