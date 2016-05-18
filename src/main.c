@@ -119,6 +119,7 @@ int main(void)
 
 	//GPIO Configuration.
 	GPIO_Config();
+	MOSFET_OFF;
 
 
 	//ACTIVAR SYSTICK TIMER
@@ -198,14 +199,14 @@ int main(void)
 	 //PRUEBA LED Y SYNC
 //	 while (1)
 //	 {
-//		 if (SYNC)
+//		 if (SYNCI)
 //		 {
-//			 SYNC_OFF;
+//			 SYNCI_OFF;
 //			 LED1_ON;
 //		 }
 //		 else
 //		 {
-//			 SYNC_ON;
+//			 SYNCI_ON;
 //			 LED1_OFF;
 //		 }
 //
@@ -224,7 +225,6 @@ int main(void)
 
 	//ADC configuration.
 	AdcConfig();
-	ADC1->CR |= ADC_CR_ADSTART;
 
 
 	//--- Loop Principal ---//
@@ -258,9 +258,15 @@ int main(void)
 			case MAIN_STANDBY_1:
 				if (CheckS1() == S_NO)
 				{
-					//espero edge dwn o timeout
-					timer_standby = 3000;
-					while ((!mosfet_edge_up) && (timer_standby));
+					timer_standby = 40;
+					main_state = MAIN_STANDBY_2;
+				}
+				break;
+
+			case MAIN_STANDBY_2:
+				//espero edge dwn o timeout
+				if ((mosfet_edge_up) || (!timer_standby))
+				{
 					MOSFET_ON;
 					minutes = 45;
 					main_state = MAIN_GEN;
@@ -294,17 +300,13 @@ int main(void)
 				if (CheckS1() > S_NO)
 				{
 					//reviso por pausa o por stop
-					main_state = MAIN_CHECK_PAUSE_OR_STOP;
-					timer_standby = 20;
+					timer_standby = 40;
 					LEDG_ON;
-					//espero edge dwn o timeout
-					while ((!mosfet_edge_dwn) && (timer_standby));
-					MOSFET_OFF;
-					timer_standby = 1500;
+					main_state = MAIN_CHECK_PAUSE_OR_STOP;
 				}
 
 				//Chequeo IPEAK
-				i_local = ReadADC1_SameSampleTime (ADC_Channel_8);
+				i_local = ReadADC1_SameSampleTime (ADC_Channel_9);
 				if (i_local > IPEAK)
 				{
 					main_state = MAIN_ERROR;
@@ -314,6 +316,18 @@ int main(void)
 				break;
 
 			case MAIN_CHECK_PAUSE_OR_STOP:
+				//espero edge dwn o timeout
+				if ((mosfet_edge_dwn) || (!timer_standby))
+				{
+					MOSFET_OFF;
+					timer_standby = 1500;
+					main_state = MAIN_CHECK_PAUSE_OR_STOP_1;
+				}
+
+				i_local = ReadADC1_SameSampleTime (ADC_Channel_9);
+				break;
+
+			case MAIN_CHECK_PAUSE_OR_STOP_1:
 				if ((timer_standby) && (CheckS1() == S_NO))		//es una pausa
 				{
 					main_state = MAIN_PAUSE;
@@ -351,9 +365,15 @@ int main(void)
 			case MAIN_PAUSE_1:
 				if (CheckS1() == S_NO)
 				{
-					timer_standby = 20;
-					//espero edge dwn o timeout
-					while ((!mosfet_edge_up) && (timer_standby));
+					timer_standby = 40;
+					main_state = MAIN_PAUSE_2;
+				}
+				break;
+
+			case MAIN_PAUSE_2:
+				//espero edge dwn o timeout
+				if ((mosfet_edge_up) || (!timer_standby))
+				{
 					MOSFET_ON;
 					BuzzerCommands(BUZZER_MULTIPLE_SHORT, 2);
 					main_state = MAIN_GEN;
@@ -397,6 +417,7 @@ int main(void)
 
 		//Verifico fase con ADC
 		vin_local = ReadADC1_SameSampleTime (ADC_Channel_0);
+//		vin_local = ReadADC1_SameSampleTime (ADC_Channel_9);
 
 		if (vin_local > VOLTAGE_SYNC_ON)
 		{
@@ -412,7 +433,7 @@ int main(void)
 			SYNC_OFF;
 		}
 
-		if (main_state == MAIN_GEN)
+		if ((main_state == MAIN_GEN) || (main_state == MAIN_CHECK_PAUSE_OR_STOP))
 		{
 			if (i_local > CURRENT_SYNCI_ON)
 			{
