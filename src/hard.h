@@ -142,7 +142,7 @@ enum var_error_states
 
 };
 
-#define IPEAK	3071	//1.5A
+#define IPEAK	2481	//2V / 3.03 = 660mV / 0.165 = 4A
 //#define VOLTAGE_ZERO		2048	//---- Valores de tension del ADC
 //#define VOLTAGE_ZERO		1950	//zero corregido 1.76V
 //#define VOLTAGE_MIN			2250

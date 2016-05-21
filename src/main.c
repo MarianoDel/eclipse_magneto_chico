@@ -268,7 +268,7 @@ int main(void)
 				if ((mosfet_edge_up) || (!timer_standby))
 				{
 					MOSFET_ON;
-					minutes = 45;
+					minutes = 6;
 					main_state = MAIN_GEN;
 					LEDR_OFF;
 				}
@@ -309,8 +309,9 @@ int main(void)
 				i_local = ReadADC1_SameSampleTime (ADC_Channel_9);
 				if (i_local > IPEAK)
 				{
+					MOSFET_OFF;
 					main_state = MAIN_ERROR;
-					ErrorCommands(ERROR_IPEAK);
+					//ErrorCommands(ERROR_IPEAK);
 					timer_standby = 10000;		//10 segundos
 				}
 				break;
@@ -396,18 +397,28 @@ int main(void)
 				break;
 
 			case MAIN_ERROR:
-				if (!timer_standby)
+				if (CheckS1() > S_HALF)
 				{
-					if (CheckS1() > S_NO)
-					{
-						minutes = minutes_paused;
-						main_state = MAIN_GEN;
-						timer_standby = 20;
-						//espero edge dwn o timeout
-						while ((!mosfet_edge_up) && (timer_standby));
-						MOSFET_ON;
-					}
+					main_state = MAIN_INIT;
+
+					BuzzerCommands(BUZZER_MULTIPLE_SHORT, 1);
 				}
+
+				if (!timer_led)
+				{
+					if (LEDG)
+					{
+						LEDG_OFF;
+						LEDR_OFF;
+					}
+					else
+					{
+						LEDG_ON;
+						LEDR_ON;
+					}
+					timer_led = 300;
+				}
+
 				break;
 
 			default:
@@ -457,7 +468,7 @@ int main(void)
 
 		UpdateSwitches();
 
-		UpdateErrors();
+		//UpdateErrors();
 
 	}
 	//--- Fin Loop Principal ---//
@@ -506,10 +517,11 @@ void TimingDelay_Decrement(void)
 	if (timer_led_error)
 		timer_led_error--;
 
-	//cuenta de a 1 minuto
+	//descuenta de a 1 minuto
 	if (msecs > 59999)	//pasaron 1 min
 	{
-		minutes++;
+		if (minutes)
+			minutes--;
 		msecs = 0;
 	}
 	else
