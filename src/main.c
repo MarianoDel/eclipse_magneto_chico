@@ -268,7 +268,7 @@ int main(void)
 				if ((mosfet_edge_up) || (!timer_standby))
 				{
 					MOSFET_ON;
-					minutes = 6;
+					minutes = 40;
 					main_state = MAIN_GEN;
 					LEDR_OFF;
 				}
@@ -285,7 +285,12 @@ int main(void)
 					timer_led = 1500;
 				}
 
-				if ((minutes < 5) && (not_beeped))
+//				if (minutes & 0x01)		//los impares
+//				{
+//					BuzzerCommands(BUZZER_MULTIPLE_SHORT, 1);
+//				}
+
+				if ((minutes < 5) && (!not_beeped))
 				{
 					not_beeped = 1;
 					BuzzerCommands(BUZZER_MULTIPLE_SHORT, 1);
@@ -293,6 +298,7 @@ int main(void)
 
 				if (!minutes)
 				{
+					timer_standby = 40;
 					BuzzerCommands(BUZZER_MULTIPLE_SHORT, 3);
 					main_state = MAIN_FINISH;
 				}
@@ -311,7 +317,6 @@ int main(void)
 				{
 					MOSFET_OFF;
 					main_state = MAIN_ERROR;
-					//ErrorCommands(ERROR_IPEAK);
 					timer_standby = 10000;		//10 segundos
 				}
 				break;
@@ -390,10 +395,21 @@ int main(void)
 				break;
 
 			case MAIN_FINISH:
-				if (!timer_standby)
+				//espero edge dwn o timeout
+				if ((mosfet_edge_dwn) || (!timer_standby))
 				{
-					main_state = MAIN_INIT;
+					MOSFET_OFF;
+					main_state = MAIN_FINISH_1;
 				}
+
+				i_local = ReadADC1_SameSampleTime (ADC_Channel_9);
+				break;
+
+			case MAIN_FINISH_1:
+				main_state = MAIN_TO_STOP;
+				timer_standby = 0;
+				LEDR_ON;
+				LEDG_ON;
 				break;
 
 			case MAIN_ERROR:
@@ -428,7 +444,6 @@ int main(void)
 
 		//Verifico fase con ADC
 		vin_local = ReadADC1_SameSampleTime (ADC_Channel_0);
-//		vin_local = ReadADC1_SameSampleTime (ADC_Channel_9);
 
 		if (vin_local > VOLTAGE_SYNC_ON)
 		{
@@ -467,8 +482,6 @@ int main(void)
 		UpdateBuzzer();
 
 		UpdateSwitches();
-
-		//UpdateErrors();
 
 	}
 	//--- Fin Loop Principal ---//

@@ -123,6 +123,7 @@ enum var_main_state
 	MAIN_PAUSE_2,
 	MAIN_TO_STOP,
 	MAIN_FINISH,
+	MAIN_FINISH_1,
 	MAIN_ERROR
 
 };
